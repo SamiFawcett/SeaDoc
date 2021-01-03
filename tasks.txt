@@ -1,0 +1,54 @@
+short term tasks:
+
+  create a simple relational surrounding text finder
+    return surrounding text of a keyword if another keyword is near it
+    {given by SETTIGNS.RELATIONAL_PROXIMITY}.
+      example:
+        searcher.findAllWithRelationTo(keyword, relation)
+
+    time started: 1:44 pm, 1/3/2021
+
+    time ended:
+
+  create command based ui for easy search
+
+
+
+long term task:
+
+  create relational database
+    - create relational mappings for each word
+    - Example: What it will look like:
+      some hash value: {
+        word:'text',
+
+        surrounding_text_relations: [
+          [surrounding text {given by SETTINGS.SEARCH PROXIMITY}]
+        ],
+
+        doubles : [
+          [every two word combination, in order]
+        ],
+
+        triples : [
+          [every three word combination, in order]
+        ],
+
+        quadruples: [
+          [every four word combination, in order]
+        ],
+
+        quintuples: [
+          [every five word combination, in order]
+        ],
+
+        filtered_text_relations: [
+          [every single surrounding word that is also somewhere else in the page]
+        ],
+        
+        possible_reccurent_phrases: [
+          [go through all doubles, triples, quadruples, and quintuples and look for reoccurence]
+        ],
+
+        
+      }

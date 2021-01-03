@@ -1,0 +1,9 @@
+_pycache_/
+
+#text files
+*.txt
+!documentaion.txt
+!tasks.txt
+
+#pdf files
+*.pdf
