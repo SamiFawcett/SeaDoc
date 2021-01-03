@@ -97,8 +97,6 @@ class Page():
   def indexMapSize(self):
     return len(self.index_mapping)
 
-  
-
   def getSubText(self, begin_idx, end_idx):
     sub_text = ''
     for i in range(begin_idx, end_idx):
@@ -125,10 +123,6 @@ class Indexer():
     self.hash_object = _hashObj
     self.document = _doc
 
-  def assignDocument(self):
-    global G_DOCUMENT
-    G_DOCUMENT = self.document
-
   def hasher(self, word, hash_obj):
     hash_obj.update(bytes(word, encoding='utf-8'))
     hash = hash_obj.hexdigest()
@@ -147,7 +141,7 @@ class Indexer():
   def generateMap(self):
     for page in self.document.getPages():
       index = 0
-      words = page.getPageText().replace('\n', '').replace('.', '').replace(',', '').replace('  ', ' ').strip().split(' ')
+      words = page.getPageText().replace('\n', '').replace('.', ' ').replace(',', ' ').replace('  ', ' ').replace('   ', ' ').strip().split(' ')
       ccm = 0
       for word in words:
         #reset hash object to store multiple copies of the same word in the same bucket
@@ -194,10 +188,12 @@ class Indexer():
 
 
 class Loader():
-  def __init__(self, _mapping_file):
-    self.mapping = {}
+  def __init__(self, _indexer, _mapping_file):
+    self.indexer = _indexer
+    self.mapping = _indexer.getMap()
     self.loaded = False
-    self.document = G_DOCUMENT
+    self.document = _indexer.getDocument() 
+
     #checks to see if we have created a map for the document
     if(os.path.exists(_mapping_file)):
       self.mapping = json.loads(open(_mapping_file, 'r', encoding='utf-8').read())
@@ -209,13 +205,15 @@ class Loader():
   def getDocument(self):
       return self.document
 
+  
+
 
 class Searcher():
   def __init__(self, _loader):
     self.loader = _loader
     self.mapping = _loader.getMap()
+    self.relational_database = self.generateRelationalDatabase()
     
-
   
   def hasher(self, word, hash_obj):
     hash_obj.update(bytes(word, encoding='utf-8'))
@@ -224,6 +222,25 @@ class Searcher():
 
   def printMap(self):
     print(self.mapping)
+
+  def generateRelationalDatabase(self):
+    r_db = {}
+    for page in self.loader.document.getPages():
+      words = page.index_mapping
+      for word in words:
+        #reset hash object to store multiple copies of the same word in the same bucket
+        hash_object = blake2s()
+        hash = self.loader.indexer.hasher(word.lower(), hash_object)
+
+        if(hash in r_db):
+          continue
+        else:
+          r_db[hash] = {
+            'word': word,
+            'proximity_text': self.findAllWithWordProximity(word)
+          }
+
+    return r_db
 
 
   def find(self, keyword):
@@ -271,7 +288,7 @@ class Searcher():
        
 
     except IndexError:
-      print('text_begin: ',text_begin, 'text_end: ', text_end, 'Out of index')
+      #print('Page num: ', associated_page_num, 'keyword: ', keyword, 'index: ', associated_index, 'text_begin: ', text_begin, 'text_end: ', text_end, 'Out of index')
       pass
     except KeyError:
       print('{} wasn\'t found.'.format(keyword))

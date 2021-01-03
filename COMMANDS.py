@@ -19,5 +19,14 @@ COMMANDS = {
             }
         }
     },
+    "get": {
+        "versions":{
+            "rdb":{
+                "id": 3,
+                "argument_num": 0,
+                "argument_names": []
+            }
+        }
+    }
 
 }

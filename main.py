@@ -22,14 +22,13 @@ print('Success...')
 #indexer setup
 print('Indexing document...')
 ind = Indexer(doc, blake2s(), True, True, mapping)
-ind.assignDocument()
 ind.generateMap()
 ind.saveMap()
 print('Success...')
 
 #loading setup
 print('Loading Document...')
-loader = Loader(mapping)
+loader = Loader(ind, mapping)
 print('Success...')
 print("Document processed... Ready for search.")
 
@@ -42,6 +41,8 @@ def commands(id, arguments):
     return searcher.findAllWithWordProximity(arguments[0])
   elif(id == 2):
     return searcher.findAllWithRelationTo(arguments[0], arguments[1])
+  elif(id == 3):
+    return searcher.relational_database
 
   return None
 
