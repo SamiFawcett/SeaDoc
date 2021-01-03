@@ -4,11 +4,15 @@ short term tasks:
     return surrounding text of a keyword if another keyword is near it
     {given by SETTIGNS.RELATIONAL_PROXIMITY}.
       example:
-        searcher.findAllWithRelationTo(keyword, relation)
+        searcher.findAllWithRelation(keyword, relation)
 
     time started: 1:44 pm, 1/3/2021
+    time frames: [
+      (1:44 pm, 3:14 pm)
+    ]
+    time ended: 3:14 pm, 1/3/2021
+      
 
-    time ended:
 
   create command based ui for easy search
 

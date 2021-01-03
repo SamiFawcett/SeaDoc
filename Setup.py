@@ -6,13 +6,14 @@ import json
 from hashlib import blake2s
 from PyPDF2 import PdfFileReader, PdfFileWriter
 import fitz
-
+import math
 
 
 
 #settings setup
 class SETTINGS():
   SEARCH_PROXIMITY = 10
+  RELATIONAL_PROXIMITY = 20
 
 
 class Document():
@@ -288,17 +289,41 @@ class Searcher():
     results = []
 
     try:
+      #results given keyword
       keyword_search = self.mapping[self.hasher(keyword.lower(), find_hasher)]
       
       #reset hasher!
       find_hasher = blake2s()
-
+      
+      #results given relation
       relational_search = self.mapping[self.hasher(relation.lower(), find_hasher)]
-    
+
+      page_numbers = keyword_search['page_numbers']
+      for page_num in page_numbers:
+        #get word indicies
+        keyword_index = keyword_search['indicies'][page_num]
+        relation_index = relational_search['indicies'][page_num]
+
+        #create sub text bounds
+        text_begin = keyword_index - SETTINGS.RELATIONAL_PROXIMITY
+        text_end = relation_index + SETTINGS.RELATIONAL_PROXIMITY
+
+        #check page bounds
+        page_wcm = self.loader.getDocument().getPage(page_num).indexMapSize()
+        if(text_end > page_wcm):
+          text_end = relation_index + len(relation)
+        if(text_begin < 0):
+          text_begin = keyword_index
+
+        #retrieve sub text
+        if(int(math.fabs(keyword_index - relation_index)) <= SETTINGS.RELATIONAL_PROXIMITY):
+          sub_text = self.loader.getDocument().getPage(page_num).getSubText(text_begin, text_end)
+          results.append(sub_text)
+
     except:
       pass
 
-    return None
+    return results
 
 
 

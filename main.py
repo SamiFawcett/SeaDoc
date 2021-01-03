@@ -9,9 +9,9 @@ import sys
 
 
 
-pdf = './ALLGTMOOCR.pdf'
-txt = './ALLGTMOOCR_TEXT.txt'
-mapping = './ALLGTMOOCR_MAPPING.txt'
+pdf = './sample.pdf'
+txt = './sample.txt'
+mapping = './sample_mapping.txt'
 
 #document setup
 print('Converting document...')
@@ -32,12 +32,19 @@ print('Success...')
 print("Document processed... Ready for search.")
 
 keyword = ''
+relation = ''
 for line in sys.stdin:
+  line = line.strip()
   if 'quit()' == line.rstrip(): 
     break
-  print('keyword: {}'.format(line.rstrip()))
-  keyword = line.rstrip()
+  print('keyword: {}'.format(line))
+  tokens = line.split(' ')
+  keyword = tokens[0]
+  relation = ''
+  if(len(tokens) > 1):
+    relation = tokens[1]
+  
   searcher = Searcher(loader)
-  results = searcher.find(keyword)
+  results = searcher.findAllWithRelationTo(keyword, relation)
 
   print(results)
