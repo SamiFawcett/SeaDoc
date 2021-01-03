@@ -230,7 +230,6 @@ class Searcher():
     #need to reset hasher
     find_hasher = blake2s()
     hash = self.hasher(keyword.lower(), find_hasher)
-    print(hash)
     try:
       #get word details
       search_object = self.mapping[hash]
