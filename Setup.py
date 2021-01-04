@@ -141,7 +141,7 @@ class Indexer():
   def generateMap(self):
     for page in self.document.getPages():
       index = 0
-      words = page.getPageText().replace('\n', '').replace('.', ' ').replace(',', ' ').replace('  ', ' ').replace('   ', ' ').strip().split(' ')
+      words = page.getPageText().replace('\n', '').replace('.', ' ').replace(',', ' ').replace(';', ' ').replace('  ', ' ').replace('   ', ' ').strip().split(' ')
       ccm = 0
       for word in words:
         #reset hash object to store multiple copies of the same word in the same bucket
@@ -237,27 +237,16 @@ class Searcher():
         else:
           r_db[hash] = {
             'word': word,
-            'proximity_text': self.findAllWithWordProximity(word)
+            'proximity_text': self.findAllWithWordProximity(word),
+            'doubles_text': self.getCombination(2, word),
+            'triples_text': self.getCombination(3, word),
+            'quadruples_text':self.getCombination(4, word),
+            'quintuples_text':self.getCombination(5, word)
           }
 
     return r_db
 
-
-  def find(self, keyword):
-    #need to reset hasher
-    find_hasher = blake2s()
-    hash = self.hasher(keyword.lower(), find_hasher)
-    try:
-      #get word details
-      search_object = self.mapping[hash]
-      
-      return search_object
-    except KeyError:
-      print('{} wasn\'t found.'.format(keyword))
-      return ''
-
-  
-  def findAllWithWordProximity(self, keyword):
+  def getCombination(self, amt, keyword):
     #need to reset hasher
     find_hasher = blake2s()
     results = []
@@ -268,8 +257,8 @@ class Searcher():
         #grab word details and setting preferences
         associated_page_num = search_object['page_numbers'][idx]
         associated_index = search_object['indicies'][idx]
-        text_begin = associated_index - SETTINGS.SEARCH_PROXIMITY
-        text_end = associated_index + len(keyword) + SETTINGS.SEARCH_PROXIMITY
+        text_begin = associated_index - amt // 2
+        text_end = associated_index + 1 + amt // 2
 
         #index_map
         page_wcm = self.loader.getDocument().getPage(associated_page_num).indexMapSize()
@@ -296,6 +285,24 @@ class Searcher():
 
 
     return results
+
+
+  def find(self, keyword):
+    #need to reset hasher
+    find_hasher = blake2s()
+    hash = self.hasher(keyword.lower(), find_hasher)
+    try:
+      #get word details
+      search_object = self.mapping[hash]
+      
+      return search_object
+    except KeyError:
+      print('{} wasn\'t found.'.format(keyword))
+      return ''
+
+  
+  def findAllWithWordProximity(self, keyword):
+    return self.getCombination(SETTINGS.SEARCH_PROXIMITY, keyword)
 
 
   def findAllWithRelationTo(self, keyword, relation):
