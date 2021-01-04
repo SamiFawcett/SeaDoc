@@ -215,13 +215,16 @@ class Searcher():
     self.relational_database = self.generateRelationalDatabase()
     
   
-  def hasher(self, word, hash_obj):
+  def hasher(self, word, hash_obj=blake2s()):
     hash_obj.update(bytes(word, encoding='utf-8'))
     hash = hash_obj.hexdigest()
     return hash
 
   def printMap(self):
     print(self.mapping)
+
+  def getRDB(self):
+    return self.relational_database
 
   def generateRelationalDatabase(self):
     r_db = {}
@@ -242,9 +245,64 @@ class Searcher():
             'triples_text': self.getCombination(3, word),
             'quadruples_text':self.getCombination(4, word),
             'quintuples_text':self.getCombination(5, word)
+            #'filtered_text_relations':self.filterTextRelations(word)
           }
 
     return r_db
+
+  def filterTextRelations(self, word):
+    search_objects = self.find(word)
+    pages_found = search_objects['page_numbers']
+    surroundingWords = []
+
+    for page in pages_found:
+      surroundingWords.append(self.findAllWithWordProximityInPage(page, word))
+
+    return surroundingWords
+
+  
+  def reccurentPhrases(self, word, occurence_amt, rdb):
+    occurences = {}
+    results = []
+    rdb = rdb[self.hasher(word, blake2s())]
+    for double_amt in range(len(rdb['doubles_text'])):
+      if(rdb['doubles_text'][double_amt] in occurences):
+        occurences[rdb['doubles_text'][double_amt]]['counter'] += 1
+      else:
+        occurences[rdb['doubles_text'][double_amt]] = {'counter': 0}
+
+      if(occurences[rdb['doubles_text'][double_amt]]['counter'] >= occurence_amt):
+          results.append(rdb['doubles_text'][double_amt])
+
+    for triple_amt in range(len(rdb['triples_text'])):
+      if(rdb['triples_text'][triple_amt] in occurences):
+        occurences[rdb['triples_text'][triple_amt]]['counter'] += 1
+      else:
+        occurences[rdb['triples_text'][triple_amt]] = {'counter': 0}
+
+      if(occurences[rdb['triples_text'][triple_amt]]['counter'] >= occurence_amt):
+          results.append(rdb['triples_text'][triple_amt])
+
+    for quad_amt in range(len(rdb['quadruples_text'])):
+      if(rdb['quadruples_text'][quad_amt] in occurences):
+        occurences[rdb['quadruples_text'][quad_amt]]['counter'] += 1
+      else:
+        occurences[rdb['quadruples_text'][quad_amt]] = {'counter': 0}
+
+      if(occurences[rdb['quadruples_text'][quad_amt]]['counter'] >= occurence_amt):
+          results.append(rdb['quadruples_text'][quad_amt])
+
+
+    for quin_amt in range(len(rdb['quintuples_text'])):
+      if(rdb['quintuples_text'][quin_amt] in occurences):
+        occurences[rdb['quintuples_text'][quin_amt]]['counter'] += 1
+      else:
+        occurences[rdb['quintuples_text'][quin_amt]] = {'counter': 0}
+
+      if(occurences[rdb['quintuples_text'][quin_amt]]['counter'] >= occurence_amt):
+          results.append(rdb['quintuples_text'][quin_amt])
+
+    return results
 
   def getCombination(self, amt, keyword):
     #need to reset hasher
@@ -257,8 +315,16 @@ class Searcher():
         #grab word details and setting preferences
         associated_page_num = search_object['page_numbers'][idx]
         associated_index = search_object['indicies'][idx]
-        text_begin = associated_index - amt // 2
-        text_end = associated_index + 1 + amt // 2
+        padding = 0
+        if(associated_index == 0):
+          padding = amt // 2
+
+        if(amt % 2 == 0):
+          text_begin = associated_index - int(math.ceil(amt / 2)) - padding
+          text_end = associated_index + int(math.ceil(amt / 2)) + padding
+        else:
+          text_begin = associated_index + 1 - int(math.ceil(amt / 2)) - padding
+          text_end = associated_index + int(math.ceil(amt / 2)) + padding
 
         #index_map
         page_wcm = self.loader.getDocument().getPage(associated_page_num).indexMapSize()
@@ -304,6 +370,48 @@ class Searcher():
   def findAllWithWordProximity(self, keyword):
     return self.getCombination(SETTINGS.SEARCH_PROXIMITY, keyword)
 
+  def findAllWithWordProximityInPage(self, page_num, keyword):
+    #need to reset hasher
+    find_hasher = blake2s()
+    results = []
+    try:
+      search_object = self.mapping[self.hasher(keyword.lower(), find_hasher)]
+
+      for idx in range(len(search_object['indicies'])):
+        #grab word details and setting preferences
+        associated_page_num = search_object['page_numbers'][idx]
+        if(associated_page_num == page_num):
+          associated_index = search_object['indicies'][idx]
+          text_begin = associated_index - SETTINGS.SEARCH_PROXIMITY
+          text_end = associated_index + 1 + SETTINGS.SEARCH_PROXIMITY
+
+          #index_map
+          page_wcm = self.loader.getDocument().getPage(associated_page_num).indexMapSize()
+          
+          if(text_end > page_wcm):
+            text_end = associated_index + len(keyword)
+          
+          if(text_begin < 0):
+            text_begin = associated_index
+          
+
+          #create subtext
+          sub_text = self.loader.getDocument().getPage(associated_page_num).getSubText(text_begin, text_end)
+          results.append(sub_text)
+        else:
+          continue
+        
+       
+
+    except IndexError:
+      #print('Page num: ', associated_page_num, 'keyword: ', keyword, 'index: ', associated_index, 'text_begin: ', text_begin, 'text_end: ', text_end, 'Out of index')
+      pass
+    except KeyError:
+      print('{} wasn\'t found.'.format(keyword))
+      pass
+
+
+    return results
 
   def findAllWithRelationTo(self, keyword, relation):
     #reset hasher

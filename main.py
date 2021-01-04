@@ -10,9 +10,9 @@ import sys
 import COMMANDS
 
 
-pdf = './sample.pdf'
-txt = './sample.txt'
-mapping = './sample_mapping.txt'
+pdf = './ALLGTMOOCR.pdf'
+txt = './ALLGTMOOCR_TEXT.txt'
+mapping = './ALLGTMOOCR_MAPPING.txt'
 
 #document setup
 print('Converting document...')
@@ -30,19 +30,35 @@ print('Success...')
 print('Loading Document...')
 loader = Loader(ind, mapping)
 print('Success...')
-print("Document processed... Ready for search.")
 
 searcher = Searcher(loader)
 
 def commands(id, arguments):
-  if(id == 0):
-    return searcher.find(arguments[0])
-  elif(id == 1):
-    return searcher.findAllWithWordProximity(arguments[0])
-  elif(id == 2):
-    return searcher.findAllWithRelationTo(arguments[0], arguments[1])
-  elif(id == 3):
-    return searcher.relational_database
+  try:
+    if(id == 0):
+      return searcher.find(arguments[0])
+    elif(id == 1):
+      return searcher.findAllWithWordProximity(arguments[0])
+    elif(id == 2):
+      return searcher.findAllWithRelationTo(arguments[0], arguments[1])
+    elif(id == 3):
+      return searcher.relational_database
+    elif(id == 4):
+      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['proximity_text']
+    elif(id == 5):
+      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['doubles_text']
+    elif(id == 6):
+      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['triples_text']
+    elif(id == 7):
+      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['quadruples_text']
+    elif(id == 8):
+      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['quintuples_text']
+    elif(id == 11):
+      return searcher.reccurentPhrases(arguments[0], int(arguments[1]), searcher.relational_database)
+
+  except KeyError:
+    print('{} doesn\'t exist'.format(arguments[0]))
+    return
 
   return None
 
