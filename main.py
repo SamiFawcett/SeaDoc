@@ -9,27 +9,42 @@ from hashlib import blake2s
 import sys
 import COMMANDS
 
-
-pdf = './ALLGTMOOCR.pdf'
-txt = './ALLGTMOOCR_TEXT.txt'
-mapping = './ALLGTMOOCR_MAPPING.txt'
+direc = 'allgtmo/'
+filename = 'ALLGTMOOCR'
+pdf = './' + direc + filename + '.pdf'
+txt = './' + direc + filename + '_TEXT' + '.txt'
+mapping = './' + direc + filename + '_MAPPING' + '.txt'
+rdb = './' + direc + filename + '_RDB' + '.txt'
 
 #document setup
 print('Converting document...')
-doc = Document(pdf, True, txt)
-print('Success...')
+try: 
+  doc = Document(pdf, txt)
+  print('Converting document [SUCCESS]')
+except:
+  print('Converting document [FAILURE]')
+  exit(0)
+
 
 #indexer setup
-print('Indexing document...')
-ind = Indexer(doc, blake2s(), True, True, mapping)
-ind.generateMap()
-ind.saveMap()
-print('Success...')
+print('Indexing ...')
+try:
+  ind = Indexer(doc, blake2s(), True, mapping)
+  print('Indexing [SUCCESS]')
+except:
+  print('Indexing [FAILURE] {}'.format(sys.exc_info()))
+  exit(0)
+  
+  
 
 #loading setup
 print('Loading Document...')
-loader = Loader(ind, mapping)
-print('Success...')
+try:
+  loader = Loader(ind, mapping, rdb)
+  print('Loading Document...[SUCCESS]')
+except:
+  print('Loading Document...[FAILURE]')
+  exit(0)
 
 searcher = Searcher(loader)
 
@@ -44,15 +59,15 @@ def commands(id, arguments):
     elif(id == 3):
       return searcher.relational_database
     elif(id == 4):
-      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['proximity_text']
+      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['proximity_text']
     elif(id == 5):
-      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['doubles_text']
+      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['doubles_text']
     elif(id == 6):
-      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['triples_text']
+      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['triples_text']
     elif(id == 7):
-      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['quadruples_text']
+      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['quadruples_text']
     elif(id == 8):
-      return searcher.relational_database[searcher.hasher(arguments[0], blake2s())]['quintuples_text']
+      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['quintuples_text']
     elif(id == 11):
       return searcher.reccurentPhrases(arguments[0], int(arguments[1]), searcher.relational_database)
 

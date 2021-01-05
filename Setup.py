@@ -2,6 +2,7 @@ import os.path
 from os import path
 
 import json
+from RDB import RDB
 
 from hashlib import blake2s
 from PyPDF2 import PdfFileReader, PdfFileWriter
@@ -17,21 +18,50 @@ class SETTINGS():
 
 
 class Document():
-  def __init__(self, _pdf_filename, _save=False, _out_text_filename=''):
+  def __init__(self, _pdf_filename, _out_text_filename=''):
     self.title = _pdf_filename.split('.')[0]
     self.pdf_filename = _pdf_filename
     self.text_filename = _out_text_filename
-    self.saved = _save
-    #updated package used to retrieve pdf text
-    self.pages, self.full_text = self.generatePagesMU()
-    self.mu_doc = None
+    self.saved = False
 
+    self.pdf = fitz.open(self.pdf_filename)
+    self.mu_doc = self.pdf
+    
+    #updated package used to retrieve pdf text
+    print('Retrieving document data...')
+    if(os.path.exists(_out_text_filename)):
+      try:
+        self.load(_out_text_filename)
+        print('Retrieving document data [SUCCESS]')
+      except:
+        print('Retrieving document data [FAILURE]')
+        exit(0)
+    else:
+      print('No document data found... Creating document data...')
+      try:
+        self.saved = True
+        self.pages, self.full_text = self.generatePagesMU()
+        print('Creating document data [SUCCESS]')
+        
+      except:
+        exit(0)
+        print('Creating document data [FAILURE]')
+
+
+
+  def load(self, text_file):
+    json_string = open(text_file, 'r', encoding='utf-8').read()
+    json_dict = json.loads(json_string)
+    self.mapping = json_dict['pages']
+    self.full_text = json_dict['full_text']
+    return 1
 
   def generatePagesMU(self):
-    pdf = fitz.open(self.pdf_filename)
-    self.mu_doc = pdf
-    pdf_pages = pdf.pages()
-
+    pdf_pages = self.pdf.pages()
+    pages_map = {
+      'pages': {},
+      'full_text': ''
+    }
     #check saving options for output
     if(self.saved):
       text_filename = self.text_filename
@@ -49,10 +79,12 @@ class Document():
 
         if(self.saved):
               #write text to text file
-              text_file.write('Page {0}\n'.format(page.number))
-              text_file.write(''.center(100, '-'))
-              text_file.write('\n')
-              text_file.write(text)
+              pages_map['pages'][page.number] = {
+                'text': exp_page.index_mapping
+              }
+      
+      pages_map['full_text'] = full_text
+      text_file.write(json.dumps(pages_map))
       text_file.close()
     
     return (page_list, full_text)
@@ -78,6 +110,14 @@ class Page():
     self.page_raw_cc = _wc
     #map text character count
     self.page_cc_map = 0
+
+    words = _page_text.replace('\n', '').replace('.', ' ').replace(',', ' ').replace(';', ' ').replace('  ', ' ').replace('   ', ' ').strip().split(' ')
+    ccm = 0
+    for word in words:
+      self.index_mapping.append(word)
+      ccm += len(word)
+    
+    self.page_cc_map = ccm
   
   def getWord(self, index):
     return self.index_mapping[index]
@@ -108,20 +148,30 @@ class Page():
 
 class Indexer():
   
-  def __init__(self, _doc, _hashObj, _lower, _save, _savefile):
+  def __init__(self, _doc, _hashObj, _lower, _savefile):
     self.mapping = {}
-    self.isSaved = _save
-    if(_save):
-      self.save_file = _savefile
+    self.save_file = _savefile
+    self.hash_object = _hashObj
+    self.document = _doc
+    self.isSaved = False
+    if(os.path.exists(self.save_file)):
+      print('Indexing text ...')
+      self.mapping = self.load(self.save_file)
+      print('Indexing text [COMPLETE]')
+      self.isSaved = True
     else:
-      self.save_file = './temp_save.txt'
+      print('Creating map ...')
+      self.generateMap()
+      self.saveMap()
+      print('Creating map [COMPLETE]')
+      self.isSaved = True
+
     if(_lower):
       self.text = _doc.getInTextFormat().lower()
     else:
       self.text = _doc.getInTextFormat()
 
-    self.hash_object = _hashObj
-    self.document = _doc
+    
 
   def hasher(self, word, hash_obj):
     hash_obj.update(bytes(word, encoding='utf-8'))
@@ -137,17 +187,20 @@ class Indexer():
   def getSaveFile(self):
     return self.save_file
 
-    
+  def load(self, text_file):
+    json_string = open(text_file, 'r', encoding='utf-8').read()
+    json_dict = json.loads(json_string)
+    self.mapping = json_dict
+    return 1
+
   def generateMap(self):
     for page in self.document.getPages():
       index = 0
-      words = page.getPageText().replace('\n', '').replace('.', ' ').replace(',', ' ').replace(';', ' ').replace('  ', ' ').replace('   ', ' ').strip().split(' ')
-      ccm = 0
+      words = page.index_mapping
       for word in words:
         #reset hash object to store multiple copies of the same word in the same bucket
         self.hash_object = blake2s()
         hash = self.hasher(word.lower(), self.hash_object)
-      
 
         if(hash in self.mapping):
           self.mapping[hash]['page_numbers'].append(page.getPageNumber())
@@ -162,12 +215,8 @@ class Indexer():
           }
 
         index+=1
-        page.index_mapping.append(word)
-        ccm += len(word)
       
-      page.setCCM(ccm)
-      ccm = 0
-
+    
     return 1
 
   def saveMap(self):
@@ -188,16 +237,22 @@ class Indexer():
 
 
 class Loader():
-  def __init__(self, _indexer, _mapping_file):
+  def __init__(self, _indexer, _mapping_file, _rdb_file):
     self.indexer = _indexer
     self.mapping = _indexer.getMap()
-    self.loaded = False
-    self.document = _indexer.getDocument() 
+    self.document = _indexer.getDocument()
+    self.rdb_file = _rdb_file
+
+    self.map_loaded = False
+    self.rdb_loaded = False
 
     #checks to see if we have created a map for the document
     if(os.path.exists(_mapping_file)):
       self.mapping = json.loads(open(_mapping_file, 'r', encoding='utf-8').read())
-      self.loaded = True
+      self.map_loaded = True
+    
+    if(os.path.exists(_rdb_file)):
+      self.rdb_loaded = True
   
   def getMap(self):
     return self.mapping
@@ -205,6 +260,8 @@ class Loader():
   def getDocument(self):
       return self.document
 
+  def getRDBFileName(self):
+    return self.rdb_file
   
 
 
@@ -212,8 +269,17 @@ class Searcher():
   def __init__(self, _loader):
     self.loader = _loader
     self.mapping = _loader.getMap()
-    self.relational_database = self.generateRelationalDatabase()
     
+    if(self.loader.rdb_loaded):
+      print('Loading RDB ...')
+      load_rdb = RDB({})
+      self.relational_database = load_rdb.load(self.loader.getRDBFileName())
+      print('Loading RDB [COMPLETE] ...')
+    else:
+      print('Creating RDB...')
+      self.relational_database = RDB(self.generateRelationalDatabase())
+      self.relational_database.save(self.loader.getRDBFileName())
+      print('Creating RDB [COMPLETE]')
   
   def hasher(self, word, hash_obj=blake2s()):
     hash_obj.update(bytes(word, encoding='utf-8'))
