@@ -55,7 +55,23 @@ short term tasks:
   ]
   time ended: 10:09am 1/5/2021
 
-  export results to spreadsheet [CURRENT]
+  export results to spreadsheet [FEATURE][INCOMPLETE]
+
+  time started: 
+  time frames: [
+    
+  ]
+  time ended:
+
+  search phrases [FEATURE][CURRENT]
+
+  time started: 
+  time frames: [
+    
+  ]
+  time ended:
+
+  fix reoccurence [BUG][INCOMPLETE]
 
   time started: 
   time frames: [
@@ -102,3 +118,12 @@ long term task:
         (6:00pm, 6:43pm), (10:22am, 1:24pm)
       ]
       time ended: 1:24pm, 1/4/2021
+
+
+
+  create GUI
+    time started: 
+    time frames: [
+    
+    ]
+    time ended:

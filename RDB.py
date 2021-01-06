@@ -24,7 +24,7 @@ class RDB:
         json_string = open(text_file, 'r', encoding='utf-8').read()
         json_dict = json.loads(json_string)
         self.setRDB(json_dict)
-        return 1
+        return json_dict
 
     
 

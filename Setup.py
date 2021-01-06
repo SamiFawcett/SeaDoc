@@ -269,11 +269,12 @@ class Searcher():
   def __init__(self, _loader):
     self.loader = _loader
     self.mapping = _loader.getMap()
-    
+    self.relational_database = RDB({})
     if(self.loader.rdb_loaded):
       print('Loading RDB ...')
       load_rdb = RDB({})
-      self.relational_database = load_rdb.load(self.loader.getRDBFileName())
+      load_rdb.load(self.loader.getRDBFileName())
+      self.relational_database = load_rdb.getRDB()
       print('Loading RDB [COMPLETE] ...')
     else:
       print('Creating RDB...')

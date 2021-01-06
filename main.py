@@ -9,8 +9,8 @@ from hashlib import blake2s
 import sys
 import COMMANDS
 
-direc = 'allgtmo/'
-filename = 'ALLGTMOOCR'
+direc = 'sample/'
+filename = 'sample'
 pdf = './' + direc + filename + '.pdf'
 txt = './' + direc + filename + '_TEXT' + '.txt'
 mapping = './' + direc + filename + '_MAPPING' + '.txt'
@@ -48,6 +48,7 @@ except:
 
 searcher = Searcher(loader)
 
+
 def commands(id, arguments):
   try:
     if(id == 0):
@@ -57,19 +58,19 @@ def commands(id, arguments):
     elif(id == 2):
       return searcher.findAllWithRelationTo(arguments[0], arguments[1])
     elif(id == 3):
-      return searcher.relational_database
+      return searcher.getRDB()
     elif(id == 4):
-      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['proximity_text']
+      return searcher.getRDB()[searcher.hasher(arguments[0], blake2s())]['proximity_text']
     elif(id == 5):
-      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['doubles_text']
+      return searcher.getRDB()[searcher.hasher(arguments[0], blake2s())]['doubles_text']
     elif(id == 6):
-      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['triples_text']
+      return searcher.getRDB()[searcher.hasher(arguments[0], blake2s())]['triples_text']
     elif(id == 7):
-      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['quadruples_text']
+      return searcher.getRDB()[searcher.hasher(arguments[0], blake2s())]['quadruples_text']
     elif(id == 8):
-      return searcher.relational_database.getRDB()[searcher.hasher(arguments[0], blake2s())]['quintuples_text']
+      return searcher.getRDB()[searcher.hasher(arguments[0], blake2s())]['quintuples_text']
     elif(id == 11):
-      return searcher.reccurentPhrases(arguments[0], int(arguments[1]), searcher.relational_database)
+      return searcher.reccurentPhrases(arguments[0], int(arguments[1]), searcher.getRDB())
 
   except KeyError:
     print('{} doesn\'t exist'.format(arguments[0]))
